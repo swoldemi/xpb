@@ -10,7 +10,7 @@ type ConfigExtensions struct {
 
 // Config encapsulates parameters and arguments for XPB execution
 type Config struct {
-	AddressedProjectID string
+	AliasOverride      string
 	NamedHostEmail     string
 	NamedGuestEmail    string
 	IntermdiateTimeout *time.Duration
