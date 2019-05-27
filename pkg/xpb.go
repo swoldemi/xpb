@@ -5,16 +5,15 @@ import (
 )
 
 // MustExecute authenticates an XPB client and calls Execute
-func MustExecute(l *logrus.Logger) {
-	client, err := New(l)
+func MustExecute(l *logrus.Entry, config *Config) {
+	client, err := New(l, config)
 	if err != nil {
-		l.Error(err)
-		panic(err)
+		l.Fatal(err)
 	}
 
+	l.Info("Beginning XPB execution...")
 	xerr := client.Execute()
 	if xerr != nil {
-		l.Error(xerr)
-		panic(xerr)
+		l.Fatal(xerr)
 	}
 }

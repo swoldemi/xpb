@@ -12,12 +12,18 @@ import (
 	xpb "github.com/swoldemi/xpb/pkg"
 )
 
-var l *logrus.Logger
+const (
+	// Version is redefined a build time
+	Version = "1.0.0-rc.1"
+)
+
+var (
+	l *logrus.Logger
+	e *logrus.Entry
+)
 
 func init() {
 	l = logrus.New()
-
-	// Log as JSON instead of the default ASCII formatter
 	l.SetFormatter(&logrus.TextFormatter{
 		ForceColors:   true,
 		FullTimestamp: true,
@@ -26,16 +32,25 @@ func init() {
 	// Output to stdout instead of the default stderr
 	l.SetOutput(os.Stdout)
 
-	// Only log the warning severity or above.
+	// log the trace severity
+	// TODO: Make this a config flag
 	l.SetLevel(logrus.TraceLevel)
 
 	// Display caller in log trace
-	l.SetReportCaller(true)
+	l.SetReportCaller(false)
 
+	// Set shared fields
+	e = l.WithField("v", Version)
 }
 
 func main() {
-	xpb.MustExecute(l)
+	config := &xpb.Config{
+		AddressedProjectID: "nickel-api",
+		HostKeyFilePath:    "./xpb-host.json",
+		GuestKeyFilePath:   "./xpb-guest.json",
+	}
+	xpb.MustExecute(e, config)
+
 	// var xpb = &cobra.Command{
 	// 	Use:   "xpb -f [config_yaml]",
 	// 	Short: "",

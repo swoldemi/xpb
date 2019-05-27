@@ -11,31 +11,28 @@ Tired of paying Google to be your cloud provider? Want to use your mom's credit 
 2. A second GCP account, on trial, with billing enabled.
     - You may use the same billing card that was used in the first account
     - You may simply make a new Gmail account
-3. Gmail access to the root accounts bound to both GCP accounts
-    - They must be different accounts
-    - Projects should be under different organizations
-    - They must be Gmail accounts (other domains/Gsuite **not tested** -- code or test contributions are welcome!)
 
 ## Who does this benefit?
 1. Startups rejected from the [Google Cloud for Startups program](https://cloud.google.com/developers/startups/) looking to lower their net burn rate
-2. Students experimenting a little too much
+2. Students experimenting a *little* too much
 3. Curious cloud developers
 
 ## Usage & Config
-- This tool supports 2 ways of authentication
-1. Application Default Credentials
-2. Service account credentials
+- This tool currently only supports Service account credentials for authentication
+  - For instructions on how to obtain service account credentials for the program see: [url here]
+- Enable the Cloud Billing API for the host and guest projects through the GCP API Library dashboard (https://console.cloud.google.com/apis/api/cloudbilling.googleapis.com/overview)
 
 ## Notes & Disclaimers 
 - This project is Google Cloud Platform specific
 
 - If I've offended anyone at Google or broken any ToS regulations, feel free to [open an issue](https://github.com/swoldemi/xpb/issues) and send that cease and desist notice my way.
 
-- You will still need to migrate accounts (or upgrade your account) at the end of the 365 day trial. Otherwise, all resources will be shutdown.
+- I am not responsible for what happens to your GCP resource while using this tool, directly or otherwise.
+
+- You will still need to migrate accounts (or upgrade your account) at the end of the 365 day trial. Otherwise, all resources will be shutdown until a valid billing account is added to the project.
 
 - If you mine crypto on cloud infrastructure, __I look down on you__ (~~unless it's Oracle's cloud~~)
 
-- Companies, however small, that have profitable software should have no reason to use this
 
 ## Invocation flow
 - The account running out of trial credits will be referred to as `host` (because it is the root host the project who's resources you would like to keep running). The new account with $300 in trial credit will be referred to as `guest`. 
@@ -44,13 +41,22 @@ Tired of paying Google to be your cloud provider? Want to use your mom's credit 
 2. Invite the `guest` account to the `host`'s project and grant the `guest` the `Billing Administrator` IAM role.
 3. 
 4. 
+
 ## FAQ
 1. Does this actually work?
     - Yes!
 2. Why did you make this?
-    - I did it manually though the GCP Console and wanted to automated it
-    - I had an excuse to use Go  
+    - I did it manually though the GCP Console and wanted to automated it.
+3. Should I use Amazon Web Serivces, Google Cloud Platform, or Microsoft Azure?
+    - Yes!
 
-gcloud auth application-default login # Select `host` account
-export GOOGLE_APPLICATION_CREDENTIALS=$(gcloud auth application-default print-access-token)
-gcloud config set project YOUR_PROJECT_NAME
+
+// Move this
+1. On the host account, create a service account at https://console.cloud.google.com/iam-admin/serviceaccounts/create?authuser=1&project=nickel-api. Grant it the Project Billing Manager and Project IAM Admin roles. Do the same on the guest account.
+[image here]
+
+2. Activate the service accounts by executing 
+```bash
+$ gcloud auth activate-service-account --key-file=[HOST_KEY_FILE_PATH]
+$ gcloud auth activate-service-account --key-file=[GUEST_KEY_FILE_PATH]
+```
