@@ -13,8 +13,8 @@ var (
 func init() {
 	l = logrus.New()
 	l.SetFormatter(&logrus.TextFormatter{
-		ForceColors:   true,
-		FullTimestamp: false,
+		ForceColors:      true,
+		DisableTimestamp: true,
 	})
 
 	// Output to stdout instead of the default stderr
@@ -25,7 +25,7 @@ func init() {
 	l.SetLevel(logrus.TraceLevel)
 
 	// Display caller in log trace
-	l.SetReportCaller(true)
+	l.SetReportCaller(false)
 }
 
 // Fataler calls logrus.Logger.Fatal on a non-nil error

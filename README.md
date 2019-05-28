@@ -9,17 +9,22 @@ Tired of paying Google to be your cloud provider? Want to use your mom's credit 
 ## Resource Requirements
 1. A GCP account, on trial, with billing enabled
 2. A second GCP account, on trial, with billing enabled.
-    - You may use the same billing card that was used in the first account.
+    - Although You may use the same billing card that was used in the first account.
 
 ## Who does this benefit?
 1. Startups rejected from the [Google Cloud for Startups program](https://cloud.google.com/developers/startups/) looking to lower their net burn rate.
 2. Students experimenting a *little* too much.
 3. Curious cloud developers.
+***CAUTION***
+- If your billing account remains disabled for a protracted period, some resources might be removed from the projects associated with that account.
+- If you associate an invalid or disabled billing account to the host's project, it's resources will be deactivated.
 
 ## Usage & Config
 - This tool currently only supports Service account credentials for authentication
   - For instructions on how to obtain service account credentials for the program see: [url here]
-- Enable the Cloud Billing API for the host and guest projects through the GCP API Library dashboard (https://console.cloud.google.com/apis/api/cloudbilling.googleapis.com/overview)
+- Enable the Cloud Billing API on the host and guest accounts through the GCP API Library dashboard (https://console.cloud.google.com/apis/api/cloudbilling.googleapis.com/overview)
+- Enable the Identity and Access Management API on the host and guest accounts through the GCP API Library dashboard (https://console.cloud.google.com/apis/api/iam.googleapis.com/overview)
+
 
 ## Notes & Disclaimers 
 - This project is Google Cloud Platform specific. [Keep in mind that projects and resources under a free trial billing account are not covered by GCP's Service Level Agreements](https://cloud.google.com/terms/free-trial/) 

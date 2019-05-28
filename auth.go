@@ -8,6 +8,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"golang.org/x/oauth2/google"
 	cloudbilling "google.golang.org/api/cloudbilling/v1"
+	cloudresourcemanager "google.golang.org/api/cloudresourcemanager/v1"
 	iam "google.golang.org/api/iam/v1"
 	"google.golang.org/api/option"
 )
@@ -34,17 +35,22 @@ func AuthenticateHost(config *Config, l *logrus.Logger, host *Host, c chan struc
 	ctx := context.Background()
 
 	opts := []option.ClientOption{option.WithCredentialsFile(config.HostKeyFilePath)}
-	l.Debug("Instantiating billing service client for host account...")
-	billing, err := cloudbilling.NewService(ctx, opts...)
+	l.Debug("Instantiating Cloud Billing service client for host account...")
+	billingsvc, err := cloudbilling.NewService(ctx, append(opts, option.WithScopes("https://www.googleapis.com/auth/cloud-billing"))...)
 	Fataler(err)
 
 	l.Debug("Instantiating IAM service client for host account...")
-	iam, err := iam.NewService(ctx, opts...)
+	iamsvc, err := iam.NewService(ctx, opts...)
+	Fataler(err)
+
+	l.Debug("Instantiating Cloud Resource Manager service client for host account...")
+	resourcemgrsvc, err := cloudresourcemanager.NewService(ctx, append(opts, option.WithScopes(cloudresourcemanager.CloudPlatformScope))...)
 	Fataler(err)
 
 	keyFile := readKeyFile(config.HostKeyFilePath, l)
-	host.BillingService = billing
-	host.IamService = iam
+	host.BillingService = billingsvc
+	host.IamService = iamsvc
+	host.ResourceMgrService = resourcemgrsvc
 	host.ProjectID = keyFile["project_id"].(string)
 	host.SvcEmail = keyFile["client_email"].(string)
 	close(c)
@@ -58,18 +64,18 @@ func AuthenticateGuest(config *Config, l *logrus.Logger, guest *Guest, c chan st
 	l.Debug("Attempting to authenticate guest using provided service account...")
 	ctx := context.Background()
 
-	opts := []option.ClientOption{option.WithCredentialsFile(config.GuestKeyFilePath)}
-	l.Debug("Instantiating billing service client for guest account...")
-	billing, err := cloudbilling.NewService(ctx, opts...)
+	opts := []option.ClientOption{option.WithCredentialsFile(config.GuestKeyFilePath), option.WithScopes("https://www.googleapis.com/auth/cloud-billing")}
+	l.Debug("Instantiating Cloud Billing service client for host account...")
+	billingsvc, err := cloudbilling.NewService(ctx, opts...)
 	Fataler(err)
 
 	l.Debug("Instantiating IAM service client for guest account...")
-	iam, err := iam.NewService(ctx, opts...)
+	iamsvc, err := iam.NewService(ctx, opts...)
 	Fataler(err)
 
 	keyFile := readKeyFile(config.GuestKeyFilePath, l)
-	guest.BillingService = billing
-	guest.IamService = iam
+	guest.BillingService = billingsvc
+	guest.IamService = iamsvc
 	guest.ProjectID = keyFile["project_id"].(string)
 	guest.SvcEmail = keyFile["client_email"].(string)
 	close(c)

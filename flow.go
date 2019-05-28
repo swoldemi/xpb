@@ -3,9 +3,14 @@ package xpb
 import (
 	"context"
 	"errors"
+	"fmt"
+	"time"
 
+	"github.com/amalfra/etag"
 	"github.com/sirupsen/logrus"
 	cloudbilling "google.golang.org/api/cloudbilling/v1"
+	cloudresourcemanager "google.golang.org/api/cloudresourcemanager/v1"
+	googleapi "google.golang.org/api/googleapi"
 	iam "google.golang.org/api/iam/v1"
 )
 
@@ -24,10 +29,11 @@ var (
 // interacting with the host account's resources.
 // This account owns the project that is in need of trial credits.
 type Host struct {
-	BillingService *cloudbilling.APIService
-	IamService     *iam.Service
-	ProjectID      string
-	SvcEmail       string
+	BillingService     *cloudbilling.APIService
+	IamService         *iam.Service
+	ResourceMgrService *cloudresourcemanager.Service
+	ProjectID          string
+	SvcEmail           string
 }
 
 // Guest encapsulates API's and services for authenticating and
@@ -50,7 +56,7 @@ type Flow struct {
 	l     *logrus.Logger
 }
 
-// New creates a new XPB Client
+// New creates a new Flow Client
 func New(l *logrus.Logger, config *Config) (*Flow, error) {
 	l.Debug("Creating new Flow instance...")
 
@@ -93,7 +99,6 @@ func (f *Flow) Execute() error {
 		f.l.Info(yikes)
 	}
 
-	f.l.Infof(projectsPrefix + f.Guest.ProjectID)
 	// Get host account's billing information for the current project
 	guestInfo, err := f.Guest.BillingService.Projects.GetBillingInfo(projectsPrefix + f.Guest.ProjectID).Context(ctx).Do()
 	if err != nil {
@@ -115,7 +120,34 @@ func (f *Flow) Execute() error {
 		return ErrAccountsIdentical
 	}
 
-	// Set the host account's project billing account to the guest's billing account
+	// Allow the guest to change the host's billing account by creating an IAM
+	// binding on the host's account.
+	// NOTE: This must be done using cloudresourcemanager/v1.
+	// See why here: https://github.com/googleapis/google-api-go-client/blob/master/iam/v1/iam-gen.go#L5848-L5875
+	g := fmt.Sprintf("serviceAccount:{%v}", f.Guest.SvcEmail)
+	f.l.Info(g)
+	tag := etag.Generate(time.Now().String(), true)
+	f.l.Infof(tag)
+	RequestBody := &cloudresourcemanager.SetIamPolicyRequest{
+		Policy: &cloudresourcemanager.Policy{
+			Bindings: []*cloudresourcemanager.Binding{
+				&cloudresourcemanager.Binding{
+					Role:    "roles/billing.admin",
+					Members: []string{g},
+				}},
+			Etag: "4ae413bd",
+		},
+		UpdateMask: "bindings",
+	}
+	f.l.Infof("%+v", RequestBody)
+	// resource := fmt.Sprintf("projects/%v/serviceAccounts/%v", f.Host.ProjectID, f.Guest.SvcEmail)
+	resp, err := f.Host.ResourceMgrService.Projects.SetIamPolicy("nickel-api", RequestBody).Context(ctx).Do(f.l, []googleapi.CallOption{}...)
+	l.Info(googleapi.IsNotModified(err))
+	Fataler(err)
 
+	f.l.Printf("%+v", resp)
+	// Guest now has permission to access the host's project.
+	// Set the host account's project billing account to the guest's billing account
+	f.l.Infof("%s's billing account changed from %s to %s. Exchange complete.", f.Host.ProjectID, hostInfo.BillingAccountName, guestInfo.BillingAccountName)
 	return nil
 }
