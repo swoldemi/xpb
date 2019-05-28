@@ -3,10 +3,7 @@ package xpb
 import (
 	"context"
 	"errors"
-	"fmt"
-	"time"
 
-	"github.com/amalfra/etag"
 	"github.com/sirupsen/logrus"
 	cloudbilling "google.golang.org/api/cloudbilling/v1"
 	cloudresourcemanager "google.golang.org/api/cloudresourcemanager/v1"
@@ -124,25 +121,25 @@ func (f *Flow) Execute() error {
 	// binding on the host's account.
 	// NOTE: This must be done using cloudresourcemanager/v1.
 	// See why here: https://github.com/googleapis/google-api-go-client/blob/master/iam/v1/iam-gen.go#L5848-L5875
-	g := fmt.Sprintf("serviceAccount:{%v}", f.Guest.SvcEmail)
-	f.l.Info(g)
-	tag := etag.Generate(time.Now().String(), true)
-	f.l.Infof(tag)
-	RequestBody := &cloudresourcemanager.SetIamPolicyRequest{
-		Policy: &cloudresourcemanager.Policy{
-			Bindings: []*cloudresourcemanager.Binding{
-				&cloudresourcemanager.Binding{
-					Role:    "roles/billing.admin",
-					Members: []string{g},
-				}},
-			Etag: "4ae413bd",
-		},
-		UpdateMask: "bindings",
+	policies, err := f.Host.ResourceMgrService.Projects.GetIamPolicy(
+		f.Host.ProjectID,
+		&cloudresourcemanager.GetIamPolicyRequest{}).Do()
+	Fataler(err)
+
+	newBinding := &cloudresourcemanager.Binding{
+		Role:    "roles/billing.projectManager",
+		Members: []string{"serviceAccount:" + f.Guest.SvcEmail},
 	}
-	f.l.Infof("%+v", RequestBody)
-	// resource := fmt.Sprintf("projects/%v/serviceAccounts/%v", f.Host.ProjectID, f.Guest.SvcEmail)
-	resp, err := f.Host.ResourceMgrService.Projects.SetIamPolicy("nickel-api", RequestBody).Context(ctx).Do(f.l, []googleapi.CallOption{}...)
+	policies.Bindings = append(policies.Bindings, newBinding)
+	rb := &cloudresourcemanager.SetIamPolicyRequest{
+		Policy: policies,
+	}
+
+	resp, err := f.Host.ResourceMgrService.Projects.SetIamPolicy(f.Host.ProjectID, rb).Context(ctx).Do()
 	l.Info(googleapi.IsNotModified(err))
+	if err != nil {
+		print(err.Error())
+	}
 	Fataler(err)
 
 	f.l.Printf("%+v", resp)
