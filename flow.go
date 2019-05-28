@@ -7,7 +7,6 @@ import (
 	"github.com/sirupsen/logrus"
 	cloudbilling "google.golang.org/api/cloudbilling/v1"
 	cloudresourcemanager "google.golang.org/api/cloudresourcemanager/v1"
-	googleapi "google.golang.org/api/googleapi"
 	iam "google.golang.org/api/iam/v1"
 )
 
@@ -91,6 +90,7 @@ func (f *Flow) Execute() error {
 		"Project ID":           hostInfo.ProjectId,
 		"Billing Account Name": hostInfo.BillingAccountName,
 		"Enabled":              hostInfo.BillingEnabled,
+		"Name":                 hostInfo.Name,
 	}).Infof("Retrieved Host's billing information")
 	if !hostInfo.BillingEnabled {
 		f.l.Info(yikes)
@@ -107,6 +107,7 @@ func (f *Flow) Execute() error {
 		"Project ID":           guestInfo.ProjectId,
 		"Billing Account Name": guestInfo.BillingAccountName,
 		"Enabled":              guestInfo.BillingEnabled,
+		"Name":                 guestInfo.Name,
 	}).Infof("Retrieved Host's billing information")
 	if !guestInfo.BillingEnabled {
 		return ErrGuestBillingDisabled
@@ -123,28 +124,46 @@ func (f *Flow) Execute() error {
 	// See why here: https://github.com/googleapis/google-api-go-client/blob/master/iam/v1/iam-gen.go#L5848-L5875
 	policies, err := f.Host.ResourceMgrService.Projects.GetIamPolicy(
 		f.Host.ProjectID,
-		&cloudresourcemanager.GetIamPolicyRequest{}).Do()
+		&cloudresourcemanager.GetIamPolicyRequest{},
+	).Do()
 	Fataler(err)
 
-	newBinding := &cloudresourcemanager.Binding{
-		Role:    "roles/billing.projectManager",
-		Members: []string{"serviceAccount:" + f.Guest.SvcEmail},
+	// Grant the guest's service account owner and billing.Projectmanager roles.
+	// Note: these are both necessary for a service account to change billing state.
+	// See: https://support.google.com/cloud/answer/7283646?hl=en
+	member := []string{"serviceAccount:" + f.Guest.SvcEmail}
+	roles := []string{"roles/owner", "roles/billing.admin"}
+	for _, role := range roles {
+		policies.Bindings = append(policies.Bindings, &cloudresourcemanager.Binding{
+			Role:    role,
+			Members: member,
+		})
 	}
-	policies.Bindings = append(policies.Bindings, newBinding)
 	rb := &cloudresourcemanager.SetIamPolicyRequest{
 		Policy: policies,
 	}
 
-	resp, err := f.Host.ResourceMgrService.Projects.SetIamPolicy(f.Host.ProjectID, rb).Context(ctx).Do()
-	l.Info(googleapi.IsNotModified(err))
-	if err != nil {
-		print(err.Error())
+	setResp, err := f.Host.ResourceMgrService.Projects.SetIamPolicy(f.Host.ProjectID, rb).Context(ctx).Do()
+	if setResp != nil {
+		f.l.Infof("%+v", setResp.ServerResponse.Header["Date"])
+	} else {
+		Fataler(err)
 	}
-	Fataler(err)
 
-	f.l.Printf("%+v", resp)
 	// Guest now has permission to access the host's project.
 	// Set the host account's project billing account to the guest's billing account
+	association := &cloudbilling.ProjectBillingInfo{
+		BillingAccountName: guestInfo.BillingAccountName,
+	}
+
+	updateResp, err := f.Guest.BillingService.Projects.UpdateBillingInfo(projectsPrefix+f.Host.ProjectID, association).Context(ctx).Do()
+	if updateResp != nil {
+		f.l.Infof("%+v", updateResp)
+
+	} else {
+		Fataler(err)
+	}
+
 	f.l.Infof("%s's billing account changed from %s to %s. Exchange complete.", f.Host.ProjectID, hostInfo.BillingAccountName, guestInfo.BillingAccountName)
 	return nil
 }
