@@ -15,6 +15,8 @@ type Config struct {
 	NamedGuestEmail    string
 	IntermdiateTimeout *time.Duration
 	Extensions         *ConfigExtensions
+	HostPass           string
+	HostProjectID      string
 	HostKeyFilePath    string
-	GuestKeyFilePath   string
+	GuestPass          string
 }

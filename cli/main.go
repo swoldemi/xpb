@@ -1,13 +1,8 @@
 package main
 
 import (
-	// "fmt"
-	// "strings"
-
-	// "github.com/spf13/cobra"
-	// "github.com/spf13/viper"
-
 	xpb "github.com/swoldemi/xpb"
+	"github.com/swoldemi/xpb/browser"
 )
 
 const (
@@ -16,21 +11,27 @@ const (
 
 func main() {
 	config := &xpb.Config{
-		HostKeyFilePath:  "./xpb-host.json",
-		GuestKeyFilePath: "./xpb-guest.json",
+		NamedHostEmail: "nickelapi@gmail.com",
+		HostPass:       "E5BB55AD2B9C54BB3264FC862513E",
+		HostProjectID:  "nickel-api",
 	}
-	xpb.MustExecute(config)
+	// xpb.MustExecute(config)
 
-	// var xpb = &cobra.Command{
-	// 	Use:   "xpb -f [config_yaml]",
-	// 	Short: "",
-	// 	Long: `echo things multiple times back to the user by providing
-	// a count and a string.`,
-	// 	Args: cobra.MinimumNArgs(1),
-	// 	Run: func(cmd *cobra.Command, args []string) {
-	// 		for i := 0; i < 3; i++ {
-	// 			fmt.Println("Echo: " + strings.Join(args, " "))
-	// 		}
-	// 	},
-	// }
+	b, err := browser.New(config)
+	if err != nil {
+		panic(err)
+	}
+
+	defer b.SeleniumService.Stop()
+	defer b.WebDriver.Quit()
+
+	err = b.LoginHost()
+	if err != nil {
+		panic(err)
+	}
+
+	err = b.InviteGuest()
+	if err != nil {
+		panic(err)
+	}
 }

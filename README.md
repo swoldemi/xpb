@@ -78,3 +78,5 @@ If anything, you may use this project as a reference for the structure and usage
 $ gcloud auth activate-service-account --key-file=[HOST_KEY_FILE_PATH]
 $ gcloud auth activate-service-account --key-file=[GUEST_KEY_FILE_PATH]
 ```
+
+> Note: The fact that this project depends on `https://github.com/tebeka/selenium` which depends on `https://github.com/BurntSushi/xgb` is a complete coincidence.
