@@ -3,6 +3,7 @@ package xpb
 import (
 	"context"
 	"errors"
+	"os/exec"
 
 	"github.com/sirupsen/logrus"
 	cloudbilling "google.golang.org/api/cloudbilling/v1"
@@ -11,8 +12,8 @@ import (
 )
 
 var (
-	// ErrGuestBillingDisabled - the guest account List call returns empty BillingAccounts
-	ErrGuestBillingDisabled = errors.New("xpb: guest account's billing is disabled")
+	// ErrGuestNoBilling - the guest account List call returns empty BillingAccounts
+	ErrGuestNoBilling = errors.New("xpb: guest has no valid billing accounts")
 
 	// ErrAccountsIdentical - the host account's project is already associated with the guest account's billing account
 	ErrAccountsIdentical = errors.New("xpb: host account is already set to guest's billing account")
@@ -20,6 +21,15 @@ var (
 	hostChan  = make(chan struct{}, 1)
 	guestChan = make(chan struct{}, 1)
 )
+
+// Retrieve the email address of the user that is currently
+// authenticated using Application Default Credentials
+func getADCEmail() []byte {
+	cmd := exec.Command("gcloud", "config", "get-value", "core/account")
+	out, err := cmd.CombinedOutput()
+	Fataler(err)
+	return out
+}
 
 // Host encapsulates API's and services for authenticating and
 // interacting with the host account's resources.
@@ -39,8 +49,6 @@ type Host struct {
 type Guest struct {
 	BillingService *cloudbilling.APIService
 	IamService     *iam.Service
-	ProjectID      string
-	SvcEmail       string
 }
 
 // Flow encapsulates attributes necessary for
@@ -59,7 +67,7 @@ func New(l *logrus.Logger, config *Config) (*Flow, error) {
 	host := &Host{}
 	guest := &Guest{}
 	go AuthenticateHost(config, l, host, hostChan)
-	go AuthenticateGuest(config, l, guest, guestChan)
+	go AuthenticateGuest(l, guest, guestChan)
 	<-hostChan
 	<-guestChan
 
@@ -76,8 +84,6 @@ func (f *Flow) Execute() error {
 
 	f.l.Infof("Host's project is set to: %v", f.Host.ProjectID)
 	f.l.Infof("Host's service account is: %v", f.Host.SvcEmail)
-	f.l.Infof("Guest's project is set to: %v", f.Guest.ProjectID)
-	f.l.Infof("Guest's service account is: %v", f.Guest.SvcEmail)
 
 	// Get host account's billing information for the current project
 	hostInfo, err := f.Host.BillingService.Projects.GetBillingInfo(projectsPrefix + f.Host.ProjectID).Context(ctx).Do()
@@ -90,31 +96,42 @@ func (f *Flow) Execute() error {
 		"Project ID":           hostInfo.ProjectId,
 		"Billing Account Name": hostInfo.BillingAccountName,
 		"Enabled":              hostInfo.BillingEnabled,
-		"Name":                 hostInfo.Name,
+		"Resource Name":        hostInfo.Name,
 	}).Infof("Retrieved Host's billing information")
 	if !hostInfo.BillingEnabled {
 		f.l.Info(yikes)
 	}
 
-	// Get host account's billing information for the current project
-	guestInfo, err := f.Guest.BillingService.Projects.GetBillingInfo(projectsPrefix + f.Guest.ProjectID).Context(ctx).Do()
+	// Get guest account's billing information for the current project
+	// Because we don't have any ProjectID, we need to list the guest's billing accounts
+	guestAccounts, err := f.Guest.BillingService.BillingAccounts.List().Context(ctx).Do()
 	if err != nil {
 		f.l.Error(err)
 		return err
 	}
-	f.l.WithFields(logrus.Fields{
-		"user":                 "Guest",
-		"Project ID":           guestInfo.ProjectId,
-		"Billing Account Name": guestInfo.BillingAccountName,
-		"Enabled":              guestInfo.BillingEnabled,
-		"Name":                 guestInfo.Name,
-	}).Infof("Retrieved Host's billing information")
-	if !guestInfo.BillingEnabled {
-		return ErrGuestBillingDisabled
+	var validAccounts []*cloudbilling.BillingAccount
+	for _, account := range guestAccounts.BillingAccounts {
+		if account.Open {
+			validAccounts = append(validAccounts, account)
+		}
 	}
 
+	if len(validAccounts) == 0 {
+		return ErrGuestNoBilling
+	}
+
+	// Pick the first account for now
+	guestInfo := validAccounts[0]
+	f.l.WithFields(logrus.Fields{
+		"user":                   "Guest",
+		"Billing Display Name":   guestInfo.DisplayName,
+		"Master Billing Account": guestInfo.MasterBillingAccount,
+		"Enabled":                guestInfo.Open,
+		"Billing Account Name":   guestInfo.Name,
+	}).Infof("Retrieved Guest's's billing information")
+
 	// Make sure the two accounts aren't already the same
-	if guestInfo.BillingAccountName == hostInfo.BillingAccountName {
+	if guestInfo.Name == hostInfo.Name {
 		return ErrAccountsIdentical
 	}
 
@@ -131,18 +148,18 @@ func (f *Flow) Execute() error {
 	// Grant the guest's service account owner and billing.Projectmanager roles.
 	// Note: these are both necessary for a service account to change billing state.
 	// See: https://support.google.com/cloud/answer/7283646?hl=en
-	member := []string{"serviceAccount:" + f.Guest.SvcEmail}
-	roles := []string{"roles/owner", "roles/billing.admin"}
+	roles := []string{"roles/billing.admin"}
+	member := "user:backtracksimon@gmail.com"
+	f.l.Info(member)
 	for _, role := range roles {
 		policies.Bindings = append(policies.Bindings, &cloudresourcemanager.Binding{
 			Role:    role,
-			Members: member,
+			Members: []string{member},
 		})
 	}
 	rb := &cloudresourcemanager.SetIamPolicyRequest{
 		Policy: policies,
 	}
-
 	setResp, err := f.Host.ResourceMgrService.Projects.SetIamPolicy(f.Host.ProjectID, rb).Context(ctx).Do()
 	if setResp != nil {
 		f.l.Infof("%+v", setResp.ServerResponse.Header["Date"])
@@ -150,20 +167,20 @@ func (f *Flow) Execute() error {
 		Fataler(err)
 	}
 
-	// Guest now has permission to access the host's project.
-	// Set the host account's project billing account to the guest's billing account
-	association := &cloudbilling.ProjectBillingInfo{
-		BillingAccountName: guestInfo.BillingAccountName,
-	}
+	// // Guest now has permission to access the host's project.
+	// // Set the host account's project billing account to the guest's billing account
+	// association := &cloudbilling.ProjectBillingInfo{
+	// 	BillingAccountName: guestInfo.BillingAccountName,
+	// }
 
-	updateResp, err := f.Guest.BillingService.Projects.UpdateBillingInfo(projectsPrefix+f.Host.ProjectID, association).Context(ctx).Do()
-	if updateResp != nil {
-		f.l.Infof("%+v", updateResp)
+	// updateResp, err := f.Guest.BillingService.Projects.UpdateBillingInfo(projectsPrefix+f.Host.ProjectID, association).Context(ctx).Do()
+	// if updateResp != nil {
+	// 	f.l.Infof("%+v", updateResp)
 
-	} else {
-		Fataler(err)
-	}
+	// } else {
+	// 	Fataler(err)
+	// }
 
-	f.l.Infof("%s's billing account changed from %s to %s. Exchange complete.", f.Host.ProjectID, hostInfo.BillingAccountName, guestInfo.BillingAccountName)
+	// f.l.Infof("%s's billing account changed from %s to %s. Exchange complete.", f.Host.ProjectID, hostInfo.BillingAccountName, guestInfo.BillingAccountName)
 	return nil
 }
