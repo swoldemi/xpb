@@ -34,7 +34,7 @@ func New(config *xpb.Config) (*GCPBrowser, error) {
 		selenium.Output(os.Stderr),              // Output debug information to STDERR.
 	}
 
-	selenium.SetDebug(true)
+	selenium.SetDebug(config.Debug)
 	service, err := selenium.NewSeleniumService(seleniumPath, port, opts...)
 	if err != nil {
 		return nil, err

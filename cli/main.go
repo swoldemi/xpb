@@ -11,27 +11,41 @@ const (
 
 func main() {
 	config := &xpb.Config{
-		NamedHostEmail: "nickelapi@gmail.com",
-		HostPass:       "E5BB55AD2B9C54BB3264FC862513E",
-		HostProjectID:  "nickel-api",
+		NamedHostEmail:  "nickelapi@gmail.com",
+		NamedGuestEmail: "machserve.io@gmail.com",
+		HostPass:        "E5BB55AD2B9C54BB3264FC862513E",
+		HostProjectID:   "nickel-api",
+		Debug:           true,
 	}
-	// xpb.MustExecute(config)
 
 	b, err := browser.New(config)
 	if err != nil {
-		panic(err)
+		xpb.Fataler(err)
 	}
 
-	defer b.SeleniumService.Stop()
-	defer b.WebDriver.Quit()
+	defer func() {
+		serr := b.SeleniumService.Stop()
+		if serr != nil {
+			xpb.Fataler(err)
+		}
+	}()
+
+	defer func() {
+		qerr := b.WebDriver.Quit()
+		if qerr != nil {
+			xpb.Fataler(err)
+		}
+	}()
 
 	err = b.LoginHost()
 	if err != nil {
-		panic(err)
+		xpb.Fataler(err)
 	}
 
 	err = b.InviteGuest()
 	if err != nil {
-		panic(err)
+		xpb.Fataler(err)
 	}
+
+	// xpb.MustExecute(config)
 }

@@ -19,4 +19,5 @@ type Config struct {
 	HostProjectID      string
 	HostKeyFilePath    string
 	GuestPass          string
+	Debug              bool
 }
