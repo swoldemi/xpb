@@ -41,7 +41,9 @@ func New(config *xpb.Config) (*GCPBrowser, error) {
 	}
 
 	// Connect to the WebDriver instance running locally.
-	c := selenium.Capabilities{"browserName": "chrome"}
+	// Need to set mapped chromeOptions to enable IsDisplayed functionality
+	// Reference: https://stackoverflow.com/questions/56111529/cannot-call-non-w3c-standard-command-while-in-w3c-mode-seleniumwebdrivererr
+	c := selenium.Capabilities{"browserName": "chrome", "chromeOptions": map[string]bool{"w3c": false}}
 	wd, err := selenium.NewRemote(c, fmt.Sprintf("http://localhost:%d/wd/hub", port))
 	if err != nil {
 		return nil, err
