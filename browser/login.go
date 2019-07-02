@@ -7,7 +7,7 @@ import (
 )
 
 func (g *GCPBrowser) typeHostEmail() error {
-	emailField, err := g.WebDriver.FindElement(selenium.ByName, "identifier")
+	emailField, err := g.WebDriver.FindElement(selenium.ByName, HostEmailSelector)
 	if err != nil {
 		return err
 	}
@@ -20,7 +20,7 @@ func (g *GCPBrowser) typeHostEmail() error {
 }
 
 func (g *GCPBrowser) submitEmail() error {
-	nextBtn, err := g.WebDriver.FindElement(selenium.ByCSSSelector, "#identifierNext")
+	nextBtn, err := g.WebDriver.FindElement(selenium.ByCSSSelector, EmailSubmitSelector)
 	if err != nil {
 		return err
 	}
@@ -34,7 +34,7 @@ func (g *GCPBrowser) submitEmail() error {
 }
 
 func (g *GCPBrowser) typeHostPassword() error {
-	passField, err := g.WebDriver.FindElement(selenium.ByName, "password")
+	passField, err := g.WebDriver.FindElement(selenium.ByName, HostPasswordSelector)
 	if err != nil {
 		return err
 	}
@@ -47,7 +47,7 @@ func (g *GCPBrowser) typeHostPassword() error {
 }
 
 func (g *GCPBrowser) submitPassword() error {
-	nextBtn, err := g.WebDriver.FindElement(selenium.ByCSSSelector, "#passwordNext")
+	nextBtn, err := g.WebDriver.FindElement(selenium.ByCSSSelector, LoginSubmitSelector)
 	if err != nil {
 		return err
 	}

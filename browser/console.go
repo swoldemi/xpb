@@ -7,7 +7,7 @@ import (
 )
 
 func (g *GCPBrowser) clickAdd() error {
-	addBtn, err := g.WebDriver.FindElement(selenium.ByXPATH, "//button[contains(@aria-label,\"Add member\")]")
+	addBtn, err := g.WebDriver.FindElement(selenium.ByXPATH, AddUserBtnXPATH)
 	if err != nil {
 		return err
 	}
@@ -22,7 +22,7 @@ func (g *GCPBrowser) clickAdd() error {
 }
 
 func (g *GCPBrowser) typeGuestEmail() error {
-	emailField, err := g.WebDriver.FindElement(selenium.ByCSSSelector, "#mat-input-1")
+	emailField, err := g.WebDriver.FindElement(selenium.ByCSSSelector, GuestEmailSelector)
 	if err != nil {
 		return err
 	}
@@ -40,7 +40,7 @@ func (g *GCPBrowser) typeGuestEmail() error {
 }
 
 func (g *GCPBrowser) clickHeader() error {
-	headerEl, err := g.WebDriver.FindElement(selenium.ByCSSSelector, "#cfc-subtask-heading-0")
+	headerEl, err := g.WebDriver.FindElement(selenium.ByCSSSelector, HeaderSelector)
 	if err != nil {
 		return err
 	}
@@ -55,7 +55,7 @@ func (g *GCPBrowser) clickHeader() error {
 }
 
 func (g *GCPBrowser) addFirstRole() error {
-	roleField, err := g.WebDriver.FindElement(selenium.ByCSSSelector, "#mat-form-field-label-3")
+	roleField, err := g.WebDriver.FindElement(selenium.ByCSSSelector, FirstRoleSelector)
 	if err != nil {
 		return err
 	}
@@ -65,7 +65,7 @@ func (g *GCPBrowser) addFirstRole() error {
 	}
 	time.Sleep(time.Second * 1) // Wait for the menu to be visible
 
-	menuInput, err := g.WebDriver.FindElement(selenium.ByXPATH, "//input[@placeholder=\"undefined\"]")
+	menuInput, err := g.WebDriver.FindElement(selenium.ByXPATH, RolesMenuXPATH)
 	if err != nil {
 		return err
 	}
@@ -90,7 +90,7 @@ func (g *GCPBrowser) addFirstRole() error {
 }
 
 func (g *GCPBrowser) clickAddAnother() error {
-	addRoleBtn, err := g.WebDriver.FindElement(selenium.ByXPATH, "//*[@icon=\"add\"]")
+	addRoleBtn, err := g.WebDriver.FindElement(selenium.ByXPATH, AddRoleBtnXPATH)
 	if err != nil {
 		return err
 	}
@@ -103,7 +103,7 @@ func (g *GCPBrowser) clickAddAnother() error {
 }
 
 func (g *GCPBrowser) addSecondRole() error {
-	roleFields, err := g.WebDriver.FindElements(selenium.ByXPATH, "//cfc-iam-role-picker[@placeholder=\"Select a role\"]")
+	roleFields, err := g.WebDriver.FindElements(selenium.ByXPATH, RoleInputsXPATH)
 	if err != nil {
 		return err
 	}
@@ -115,7 +115,7 @@ func (g *GCPBrowser) addSecondRole() error {
 	}
 	time.Sleep(time.Second * 1) // Wait for the menu to be visible
 
-	menuInput, err := g.WebDriver.FindElement(selenium.ByXPATH, "//input[@placeholder=\"undefined\"]")
+	menuInput, err := g.WebDriver.FindElement(selenium.ByXPATH, RolesMenuXPATH)
 	if err != nil {
 		return err
 	}
@@ -136,11 +136,10 @@ func (g *GCPBrowser) addSecondRole() error {
 	// random option ID on refresh, we can't give it a static selector.
 	// Instead, do a search on the document tree. Stop when the
 	// inner text of the element matches the name of the role
-	optionElements, err := g.WebDriver.FindElements(selenium.ByXPATH, "//mat-option[starts-with(@id, \"mat-option\")]")
+	optionElements, err := g.WebDriver.FindElements(selenium.ByXPATH, MatOptionsXPATH)
 	if err != nil {
 		return err
 	}
-	_ = optionElements
 
 	// Find the only one that is visible, the Project Billing Manager button and click it
 	for _, element := range optionElements {
@@ -157,12 +156,11 @@ func (g *GCPBrowser) addSecondRole() error {
 			break
 		}
 	}
-
 	return nil
 }
 
 func (g *GCPBrowser) submitGuestInvite() error {
-	submitBtn, err := g.WebDriver.FindElement(selenium.ByXPATH, "//*[@cfcformsubmit=\"addRoleForm\"]")
+	submitBtn, err := g.WebDriver.FindElement(selenium.ByXPATH, RolesSubmitXPATH)
 	if err != nil {
 		return err
 	}
