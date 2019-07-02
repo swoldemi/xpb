@@ -2,25 +2,24 @@ package browser
 
 import (
 	"time"
-
 	"github.com/tebeka/selenium"
 )
 
-func (g *GCPBrowser) typeHostEmail() error {
-	emailField, err := g.WebDriver.FindElement(selenium.ByName, HostEmailSelector)
+func (c *ChromeBrowser) typeHostEmail() error {
+	emailField, err := c.WebDriver.FindElement(selenium.ByName, HostEmailSelector)
 	if err != nil {
 		return err
 	}
 
-	err = emailField.SendKeys(g.Config.NamedHostEmail)
+	err = emailField.SendKeys(c.Config.NamedHostEmail)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (g *GCPBrowser) submitEmail() error {
-	nextBtn, err := g.WebDriver.FindElement(selenium.ByCSSSelector, EmailSubmitSelector)
+func (c *ChromeBrowser) submitEmail() error {
+	nextBtn, err := c.WebDriver.FindElement(selenium.ByCSSSelector, EmailSubmitSelector)
 	if err != nil {
 		return err
 	}
@@ -33,21 +32,21 @@ func (g *GCPBrowser) submitEmail() error {
 	return nil
 }
 
-func (g *GCPBrowser) typeHostPassword() error {
-	passField, err := g.WebDriver.FindElement(selenium.ByName, HostPasswordSelector)
+func (c *ChromeBrowser) typeHostPassword() error {
+	passField, err := c.WebDriver.FindElement(selenium.ByName, HostPasswordSelector)
 	if err != nil {
 		return err
 	}
 
-	err = passField.SendKeys(g.Config.HostPass)
+	err = passField.SendKeys(c.Config.HostPass)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (g *GCPBrowser) submitPassword() error {
-	nextBtn, err := g.WebDriver.FindElement(selenium.ByCSSSelector, LoginSubmitSelector)
+func (c *ChromeBrowser) submitPassword() error {
+	nextBtn, err := c.WebDriver.FindElement(selenium.ByCSSSelector, LoginSubmitSelector)
 	if err != nil {
 		return err
 	}

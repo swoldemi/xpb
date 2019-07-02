@@ -6,8 +6,8 @@ import (
 	"github.com/tebeka/selenium"
 )
 
-func (g *GCPBrowser) clickAdd() error {
-	addBtn, err := g.WebDriver.FindElement(selenium.ByXPATH, AddUserBtnXPATH)
+func (c *ChromeBrowser) clickAdd() error {
+	addBtn, err := c.WebDriver.FindElement(selenium.ByXPATH, AddUserBtnXPATH)
 	if err != nil {
 		return err
 	}
@@ -16,18 +16,16 @@ func (g *GCPBrowser) clickAdd() error {
 	if err != nil {
 		return err
 	}
-
-	time.Sleep(time.Second * 8) // Need to wait for the drawer to open
 	return nil
 }
 
-func (g *GCPBrowser) typeGuestEmail() error {
-	emailField, err := g.WebDriver.FindElement(selenium.ByCSSSelector, GuestEmailSelector)
+func (c *ChromeBrowser) typeGuestEmail() error {
+	emailField, err := c.WebDriver.FindElement(selenium.ByCSSSelector, GuestEmailSelector)
 	if err != nil {
 		return err
 	}
 
-	err = emailField.SendKeys(g.Config.NamedGuestEmail)
+	err = emailField.SendKeys(c.Config.NamedGuestEmail)
 	if err != nil {
 		return err
 	}
@@ -39,8 +37,8 @@ func (g *GCPBrowser) typeGuestEmail() error {
 	return nil
 }
 
-func (g *GCPBrowser) clickHeader() error {
-	headerEl, err := g.WebDriver.FindElement(selenium.ByCSSSelector, HeaderSelector)
+func (c *ChromeBrowser) clickHeader() error {
+	headerEl, err := c.WebDriver.FindElement(selenium.ByCSSSelector, HeaderSelector)
 	if err != nil {
 		return err
 	}
@@ -49,13 +47,11 @@ func (g *GCPBrowser) clickHeader() error {
 	if err != nil {
 		return err
 	}
-
-	time.Sleep(time.Second * 1) // Wait for the option to be gone
 	return nil
 }
 
-func (g *GCPBrowser) addFirstRole() error {
-	roleField, err := g.WebDriver.FindElement(selenium.ByCSSSelector, FirstRoleSelector)
+func (c *ChromeBrowser) addFirstRole() error {
+	roleField, err := c.WebDriver.FindElement(selenium.ByCSSSelector, FirstRoleSelector)
 	if err != nil {
 		return err
 	}
@@ -65,7 +61,7 @@ func (g *GCPBrowser) addFirstRole() error {
 	}
 	time.Sleep(time.Second * 1) // Wait for the menu to be visible
 
-	menuInput, err := g.WebDriver.FindElement(selenium.ByXPATH, RolesMenuXPATH)
+	menuInput, err := c.WebDriver.FindElement(selenium.ByXPATH, RolesMenuXPATH)
 	if err != nil {
 		return err
 	}
@@ -76,7 +72,7 @@ func (g *GCPBrowser) addFirstRole() error {
 	}
 
 	// The filter has completed, click the role
-	ownerRoleEl, err := g.WebDriver.FindElement(selenium.ByCSSSelector, OwnerRoleSelector)
+	ownerRoleEl, err := c.WebDriver.FindElement(selenium.ByCSSSelector, OwnerRoleSelector)
 	if err != nil {
 		return err
 	}
@@ -84,13 +80,11 @@ func (g *GCPBrowser) addFirstRole() error {
 	if err != nil {
 		return err
 	}
-
-	time.Sleep(time.Second * 1) // Wait for the menu to close
 	return nil
 }
 
-func (g *GCPBrowser) clickAddAnother() error {
-	addRoleBtn, err := g.WebDriver.FindElement(selenium.ByXPATH, AddRoleBtnXPATH)
+func (c *ChromeBrowser) clickAddAnother() error {
+	addRoleBtn, err := c.WebDriver.FindElement(selenium.ByXPATH, AddRoleBtnXPATH)
 	if err != nil {
 		return err
 	}
@@ -102,8 +96,8 @@ func (g *GCPBrowser) clickAddAnother() error {
 	return nil
 }
 
-func (g *GCPBrowser) addSecondRole() error {
-	roleFields, err := g.WebDriver.FindElements(selenium.ByXPATH, RoleInputsXPATH)
+func (c *ChromeBrowser) addSecondRole() error {
+	roleFields, err := c.WebDriver.FindElements(selenium.ByXPATH, RoleInputsXPATH)
 	if err != nil {
 		return err
 	}
@@ -115,7 +109,7 @@ func (g *GCPBrowser) addSecondRole() error {
 	}
 	time.Sleep(time.Second * 1) // Wait for the menu to be visible
 
-	menuInput, err := g.WebDriver.FindElement(selenium.ByXPATH, RolesMenuXPATH)
+	menuInput, err := c.WebDriver.FindElement(selenium.ByXPATH, RolesMenuXPATH)
 	if err != nil {
 		return err
 	}
@@ -136,7 +130,7 @@ func (g *GCPBrowser) addSecondRole() error {
 	// random option ID on refresh, we can't give it a static selector.
 	// Instead, do a search on the document tree. Stop when the
 	// inner text of the element matches the name of the role
-	optionElements, err := g.WebDriver.FindElements(selenium.ByXPATH, MatOptionsXPATH)
+	optionElements, err := c.WebDriver.FindElements(selenium.ByXPATH, MatOptionsXPATH)
 	if err != nil {
 		return err
 	}
@@ -159,8 +153,8 @@ func (g *GCPBrowser) addSecondRole() error {
 	return nil
 }
 
-func (g *GCPBrowser) submitGuestInvite() error {
-	submitBtn, err := g.WebDriver.FindElement(selenium.ByXPATH, RolesSubmitXPATH)
+func (c *ChromeBrowser) submitGuestInvite() error {
+	submitBtn, err := c.WebDriver.FindElement(selenium.ByXPATH, RolesSubmitXPATH)
 	if err != nil {
 		return err
 	}
