@@ -17,8 +17,9 @@ type Config struct {
 	Extensions         *ConfigExtensions
 	HostPass           string
 	HostProjectID      string
-	HostKeyFilePath    string
-	GuestPass          string
+	HostKeyFilePath    string // Host's Activated Service Account
+	GuestKeyFilePath   string // Guest's Activated Service ACcount
+	GuestGmailCredsPath string
 	SeleniumRemotePort int
 	PollInterval       time.Duration
 	ChromeDriverPath   string
