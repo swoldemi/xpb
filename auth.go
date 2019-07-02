@@ -12,9 +12,7 @@ import (
 	"google.golang.org/api/option"
 )
 
-func readKeyFile(filepath string, l *logrus.Logger) map[string]interface{} {
-	l.Debug("Storing guest's service account information...")
-
+func readKeyFile(filepath string) map[string]interface{} {
 	// Read key file only to extract project_id and client_email
 	data, err := ioutil.ReadFile(filepath)
 	Fataler(err)
@@ -29,7 +27,7 @@ func readKeyFile(filepath string, l *logrus.Logger) map[string]interface{} {
 // AuthenticateHost fulfills xpb.Host
 // with services authenticated and instantiated using
 // the provided service account key file.
-func AuthenticateHost(config *Config, l *logrus.Logger, host *Host, c chan struct{}) {
+func AuthenticateHost(config *Config, l *logrus.Entry, host *Host, c chan struct{}) {
 	l.Debug("Attempting to authenticate host using provided service account...")
 	ctx := context.Background()
 
@@ -46,7 +44,8 @@ func AuthenticateHost(config *Config, l *logrus.Logger, host *Host, c chan struc
 	resourcemgrsvc, err := cloudresourcemanager.NewService(ctx, append(opts, option.WithScopes(cloudresourcemanager.CloudPlatformScope))...)
 	Fataler(err)
 
-	keyFile := readKeyFile(config.HostKeyFilePath, l)
+	l.Debug("Storing guest's service account information...")
+	keyFile := readKeyFile(config.HostKeyFilePath)
 	host.BillingService = billingsvc
 	host.IamService = iamsvc
 	host.ResourceMgrService = resourcemgrsvc
@@ -56,9 +55,8 @@ func AuthenticateHost(config *Config, l *logrus.Logger, host *Host, c chan struc
 }
 
 // AuthenticateGuest fulfills xpb.Guest
-// with services authenticated and instantiated using
-// the provided service account key file.
-func AuthenticateGuest(l *logrus.Logger, guest *Guest, c chan struct{}) {
+// with services authenticated and instantiated using default credentials
+func AuthenticateGuest(l *logrus.Entry, guest *Guest, c chan struct{}) {
 	l.Debug("Attempting to authenticate guest using using ADC...")
 	ctx := context.Background()
 

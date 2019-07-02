@@ -2,8 +2,6 @@ package xpb
 
 import (
 	"context"
-	"errors"
-	"os/exec"
 
 	"github.com/sirupsen/logrus"
 	cloudbilling "google.golang.org/api/cloudbilling/v1"
@@ -12,24 +10,9 @@ import (
 )
 
 var (
-	// ErrGuestNoBilling - the guest account List call returns empty BillingAccounts
-	ErrGuestNoBilling = errors.New("xpb: guest has no valid billing accounts")
-
-	// ErrAccountsIdentical - the host account's project is already associated with the guest account's billing account
-	ErrAccountsIdentical = errors.New("xpb: host account is already set to guest's billing account")
-
 	hostChan  = make(chan struct{}, 1)
 	guestChan = make(chan struct{}, 1)
 )
-
-// Retrieve the email address of the user that is currently
-// authenticated using Application Default Credentials
-func getADCEmail() []byte {
-	cmd := exec.Command("gcloud", "config", "get-value", "core/account")
-	out, err := cmd.CombinedOutput()
-	Fataler(err)
-	return out
-}
 
 // Host encapsulates API's and services for authenticating and
 // interacting with the host account's resources.
@@ -57,11 +40,12 @@ type Guest struct {
 type Flow struct {
 	Host  *Host
 	Guest *Guest
-	l     *logrus.Logger
+	l     *logrus.Entry
 }
 
 // New creates a new Flow Client
-func New(l *logrus.Logger, config *Config) (*Flow, error) {
+func New(config *Config) (*Flow, error) {
+	l := NewLogger("Flow")
 	l.Debug("Creating new Flow instance...")
 
 	host := &Host{}
