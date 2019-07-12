@@ -1,9 +1,10 @@
-package xpb
+package accounts
 
 import (
 	"context"
 
-	"github.com/sirupsen/logrus"
+	"github.com/swoldemi/xpb/log"
+	"github.com/swoldemi/xpb/util"
 	cloudbilling "google.golang.org/api/cloudbilling/v1"
 	cloudresourcemanager "google.golang.org/api/cloudresourcemanager/v1"
 	iam "google.golang.org/api/iam/v1"
@@ -22,7 +23,7 @@ type Host struct {
 	IamService         *iam.Service
 	ResourceMgrService *cloudresourcemanager.Service
 	ProjectID          string
-	SvcEmail           string
+	ProjectID string
 }
 
 // Guest encapsulates API's and services for authenticating and
@@ -34,93 +35,98 @@ type Guest struct {
 	IamService     *iam.Service
 }
 
-// Flow encapsulates attributes necessary for
-// invoking the cross-project billing flow.
-// All clients are given minimum required OAuth scopes.
-type Flow struct {
+// Accounts encapsulates attributes and methods 
+// necessary for verifying the state of the host
+// and guest accounts.
+type Accounts struct {
 	Host  *Host
 	Guest *Guest
-	l     *logrus.Entry
 }
 
-// New creates a new Flow Client
-func New(config *Config) (*Flow, error) {
-	l := NewLogger("Flow")
-	l.Debug("Creating new Flow instance...")
+// New creates a new Accounts instance.
+func New(config *Config) (*Accounts, error) {
+	log.Debug("Creating new Accounts instance...")
 
 	host := &Host{}
 	guest := &Guest{}
-	go AuthenticateHost(config, l, host, hostChan)
-	go AuthenticateGuest(l, guest, guestChan)
+	go AuthenticateHost(config, host, hostChan)
+	go AuthenticateGuest(config, guest, guestChan)
 	<-hostChan
 	<-guestChan
 
-	return &Flow{
+	return &Accounts{
 		Host:  host,
 		Guest: guest,
-		l:     l,
 	}, nil
 }
 
-// Execute begins the XPB sequence
-func (f *Flow) Execute() error {
+// Verify begins the XPB sequence by
+// checking that the guest and host are valid
+// accounts and retrives the guest's billing account
+// which will be linked to the host's project.
+func (f *Flow) Verify() (string, error) {
 	ctx := context.Background()
 
-	f.l.Infof("Host's project is set to: %v", f.Host.ProjectID)
-	f.l.Infof("Host's service account is: %v", f.Host.SvcEmail)
+	log.Info("Host's project is set to: %v", f.Host.ProjectID)
+	log.Info("Host's service account is: %v", f.Host.SvcEmail)
 
-	// Get host account's billing information for the current project
 	hostInfo, err := f.getHostBilling(ctx)
 	if err != nil {
-		f.l.Error(err)
-		return err
+		log.Error(err)
+		return "", err
 	}
 
 	guestInfo, err := f.getGuestBilling(ctx)
 	if err != nil {
-		f.l.Error(err)
-		return err
+		log.Error(err)
+		return "", err
 	}
 
 	// Make sure the two accounts aren't already the same
 	if guestInfo.Name == hostInfo.Name {
-		return ErrAccountsIdentical
+		return "", util.ErrAccountsIdentical
 	}
 
-	// Per `package browser`, guest has permission to access the host's project.
-	// Set the host account's project billing account to the guest's billing account
+	// State is good enough, return the guest's billing account
+	return guestInfo.MasterBillingAccount, nil
+}
+
+
+// Link performs the link of the guest's billing account to the host.
+// This assumes the guest has accepted the host's invite, per 
+// `package browser`'s automation.
+func (f *Flow) Link() error {
 	association := &cloudbilling.ProjectBillingInfo{
 		BillingAccountName: guestInfo.Name,
 	}
 
 	updateResp, err := f.Guest.BillingService.Projects.UpdateBillingInfo("projects/"+f.Host.ProjectID, association).Context(ctx).Do()
 	if updateResp != nil {
-		f.l.Infof("%+v", updateResp)
-
+		log.Trace("%+v", updateResp)
 	} else {
-		Fataler(err)
+		log.Fatal(err)
 	}
 
-	f.l.Infof("%s's billing account changed from %s to %s. Exchange complete.", f.Host.ProjectID, hostInfo.BillingAccountName, guestInfo.Name)
-	return nil
+	log.Trace("%s's billing account changed from %s to %s. Exchange complete.", f.Host.ProjectID, hostInfo.BillingAccountName, guestInfo.Name)
 }
 
-func (f *Flow) getHostBilling(ctx context.Context) (*cloudbilling.ProjectBillingInfo, error) {
+ func (f *Flow) getHostBilling(ctx context.Context) (*cloudbilling.ProjectBillingInfo, error) {
 	hostInfo, err := f.Host.BillingService.Projects.GetBillingInfo("projects/" + f.Host.ProjectID).Context(ctx).Do()
 	if err != nil {
 		return nil, err
 	}
 
-	f.l.WithFields(logrus.Fields{
+	log.Trace("%+v", map[string]string{
 		"user":                 "Host",
 		"Project ID":           hostInfo.ProjectId,
 		"Billing Account Name": hostInfo.BillingAccountName,
 		"Enabled":              hostInfo.BillingEnabled,
 		"Resource Name":        hostInfo.Name,
-	}).Infof("Retrieved Host's billing information")
+	})
+	log.Trace("Retrieved Host's billing information")
 
 	if !hostInfo.BillingEnabled {
-		f.l.Info(yikes)
+		log.Warning("This billing account isn't enabled anymore!")
 	}
 
 	return hostInfo, err
@@ -147,13 +153,14 @@ func (f *Flow) getGuestBilling(ctx context.Context) (*cloudbilling.BillingAccoun
 
 	// Pick the first account for now
 	guestInfo := validAccounts[0]
-	f.l.WithFields(logrus.Fields{
+	log.Info("%+v", map[string]string{
 		"user":                   "Guest",
 		"Billing Display Name":   guestInfo.DisplayName,
 		"Master Billing Account": guestInfo.MasterBillingAccount,
 		"Enabled":                guestInfo.Open,
 		"Billing Account Name":   guestInfo.Name,
-	}).Infof("Retrieved Guest's's billing information")
+	})
+	log.Trace("Retrieved Guest's billing information")
 
 	return guestInfo, nil
 }

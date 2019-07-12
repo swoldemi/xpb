@@ -5,26 +5,28 @@ import (
 	"os"
 	"time"
 
-	"github.com/swoldemi/xpb"
+	"github.com/swoldemi/xpb/config"
+	"github.com/swoldemi/xpb/log"
+	"github.com/swoldemi/xpb/util"
 	"github.com/tebeka/selenium"
 )
 
 // ChromeBrowser encapsulates fields and methods for automated
-// interation with the Google Cloud Platform console via ChromeDriver
+// interation with the Google Cloud Platform console via ChromeDriver.
 type ChromeBrowser struct {
 	SeleniumService *selenium.Service
 	WebDriver       selenium.WebDriver
-	Config          *xpb.Config
+	Config          *config.Config
 }
 
 // New starts and connects a locally running Selenium
-// instance to the remote ChromeDriver
-func New(config *xpb.Config) (*ChromeBrowser, error) {
-	selenium.SetDebug(config.Debug)
+// instance to the remote ChromeDriver.
+func New(config *config.Config) (*ChromeBrowser, error) {
+	selenium.SetDebug(config.SeleniumDebug)
 
 	opts := []selenium.ServiceOption{
-		selenium.ChromeDriver(config.ChromeDriverPath), // Specify the path to ChromeDriver in order to use Chrome.
-		selenium.Output(os.Stderr),                     // Output debug information to STDERR.
+		selenium.ChromeDriver(config.ChromeDriverPath), // Specify the path to ChromeDriver in order to use Chrome
+		selenium.Output(os.Stderr),                     // Output debug information to STDERR
 	}
 	service, err := selenium.NewSeleniumService(config.SeleniumPath, config.SeleniumRemotePort, opts...)
 	if err != nil {
@@ -48,21 +50,22 @@ func New(config *xpb.Config) (*ChromeBrowser, error) {
 	}, nil
 }
 
-// Wait is a reused method for blocking until the page has achived a completed ready state
+// Wait is used for blocking until the page has achived a completed ready state. 
+// Currently inconsistent and unreliable.
 func (c *ChromeBrowser) Wait() error {
-	err := c.WebDriver.WaitWithTimeoutAndInterval(ReadyStateCond, c.Config.IntermdiateTimeout, c.Config.PollInterval)
+	err := c.WebDriver.WaitWithTimeoutAndInterval(util.ReadyStateCond, c.Config.SeleniumTimeout, c.Config.SeleniumPollInterval)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-// LoginHost log in to the host's Google account
+// LoginHost logs in to the host's Google account.
 func (c *ChromeBrowser) LoginHost() error {
 	defer func() {
 		err := c.Wait()
 		if err != nil {
-			xpb.Fataler(err)
+			log.Fatal(err)
 		}
 	}()
 
@@ -70,37 +73,36 @@ func (c *ChromeBrowser) LoginHost() error {
 	if err := c.WebDriver.Get(gcpConsoleURL); err != nil {
 		return err
 	}
-
-	if err := c.typeHostEmail(); err != nil {
+	if err := c.TypeLoginEmail(c.Config.HostEmail); err != nil {
 		return err
 	}
-	if err := c.submitEmail(); err != nil {
+	if err := c.SubmitEmail(); err != nil {
 		return err
 	}
-	if err := c.typeHostPassword(); err != nil {
+	if err := c.TypeLoginPassword(c.Config.HostPass); err != nil {
 		return err
 	}
-	if err := c.submitPassword(); err != nil {
+	if err := c.SubmitPassword(); err != nil {
 		return err
 	}
 	return nil
 }
 
 // InviteGuest invites the guest account, with credits,
-// to the host's selected project
+// to the host's selected project.
 func (c *ChromeBrowser) InviteGuest() error {
 	defer func() {
 		err := c.Wait()
 		if err != nil {
-			xpb.Fataler(err)
+			log.Fatal(err)
 		}
 	}()
 
 	time.Sleep(time.Second * 10) // FIXME: Just wait for the add button to be visible
-	if err := c.clickAdd(); err != nil {
+	if err := c.ClickAdd(); err != nil {
 		return err
 	}
-	if err := c.typeGuestEmail(); err != nil {
+	if err := c.TypeGuestEmail(); err != nil {
 		return err
 	}
 
@@ -109,23 +111,61 @@ func (c *ChromeBrowser) InviteGuest() error {
 	// then it will prevent the WebDriver from selecting the role box by
 	// intercepting the click. To solve this, remove focus from the email
 	// field by clicking on an arbitrary element. In this case, a header
-	if err := c.clickHeader(); err != nil {
+	if err := c.ClickHeader(); err != nil {
 		return err
 	}
 
 	// The owner must have the Owner and Project Billing Manager
 	// roles in order to be able to change billing accounts
 	// The drawer only displays one role entry field, by default
-	if err := c.addFirstRole(); err != nil {
+	if err := c.AddFirstRole(); err != nil {
 		return err
 	}
-	if err := c.clickAddAnother(); err != nil {
+	if err := c.ClickAddAnother(); err != nil {
 		return err
 	}
-	if err := c.addSecondRole(); err != nil {
+	if err := c.AddSecondRole(); err != nil {
 		return err
 	}
-	if err := c.submitGuestInvite(); err != nil {
+	if err := c.SubmitGuestInvite(); err != nil {
+		return err
+	}
+	return nil
+}
+
+// LoginGuest logs in to the guest's Google account and accepts the host's invite.
+func (c *ChromeBrowser) LoginGuest() error {
+	defer func() {
+		err := c.Wait()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}()
+
+	// Assume that the format of the login url is always the same
+	// TODO: What happens if this is invoked too quickly? 
+	inviteURL := fmt.Sprintf(
+		"https://console.cloud.google.com/invitation?project=%v&account=%vmemberEmail=%v",
+		c.Config.HostProjectID,
+		c.Config.GuestEmail,
+		c.Config.GuestEmail,
+	)
+	if err := c.WebDriver.Get(inviteURL); err != nil {
+		return err
+	}
+	if err := c.TypeLoginEmail(c.Config.GuestEmail); err != nil {
+		return err
+	}
+	if err := c.SubmitEmail(); err != nil {
+		return err
+	}
+	if err := c.TypeLoginPassword(c.Config.GuestPass); err != nil {
+		return err
+	}
+	if err := c.SubmitPassword(); err != nil {
+		return err
+	}
+	if err := c.AcceptInvite(); err != nil {
 		return err
 	}
 	return nil

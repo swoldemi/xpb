@@ -1,6 +1,6 @@
-OUT := xpb
-PKG := gitlab.com/swoldemi/xpb
-VERSION := $(shell git describe --always --long --dirty)
+OUT := xpb.exe
+PKG := github.com/swoldemi/xpb
+VERSION := $(shell git describe --always --long)
 PKG_LIST := $(shell go list ${PKG}/... | grep -v /vendor/)
 GO_FILES := $(shell find . -name '*.go' | grep -v /vendor/)
 

@@ -2,23 +2,26 @@ package browser
 
 import (
 	"time"
+
 	"github.com/tebeka/selenium"
 )
 
-func (c *ChromeBrowser) typeHostEmail() error {
-	emailField, err := c.WebDriver.FindElement(selenium.ByName, HostEmailSelector)
+// TypeLoginEmail types an account's login email.
+func (c *ChromeBrowser) TypeLoginEmail(email string) error {
+	emailField, err := c.WebDriver.FindElement(selenium.ByName, LoginEmailSelector)
 	if err != nil {
 		return err
 	}
 
-	err = emailField.SendKeys(c.Config.NamedHostEmail)
+	err = emailField.SendKeys(email)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (c *ChromeBrowser) submitEmail() error {
+// SubmitEmail submits the email field to progress to the login field.
+func (c *ChromeBrowser) SubmitEmail() error {
 	nextBtn, err := c.WebDriver.FindElement(selenium.ByCSSSelector, EmailSubmitSelector)
 	if err != nil {
 		return err
@@ -32,20 +35,22 @@ func (c *ChromeBrowser) submitEmail() error {
 	return nil
 }
 
-func (c *ChromeBrowser) typeHostPassword() error {
+// TypeLoginPassword types an account's login password.
+func (c *ChromeBrowser) TypeLoginPassword(password string) error {
 	passField, err := c.WebDriver.FindElement(selenium.ByName, HostPasswordSelector)
 	if err != nil {
 		return err
 	}
 
-	err = passField.SendKeys(c.Config.HostPass)
+	err = passField.SendKeys(password)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (c *ChromeBrowser) submitPassword() error {
+// SubmitPassword submits the login form.
+func (c *ChromeBrowser) SubmitPassword() error {
 	nextBtn, err := c.WebDriver.FindElement(selenium.ByCSSSelector, LoginSubmitSelector)
 	if err != nil {
 		return err

@@ -6,7 +6,8 @@ import (
 	"github.com/tebeka/selenium"
 )
 
-func (c *ChromeBrowser) clickAdd() error {
+// ClickAdd clicks the add button on the IAM tab of the GCP console.
+func (c *ChromeBrowser) ClickAdd() error {
 	addBtn, err := c.WebDriver.FindElement(selenium.ByXPATH, AddUserBtnXPATH)
 	if err != nil {
 		return err
@@ -19,13 +20,14 @@ func (c *ChromeBrowser) clickAdd() error {
 	return nil
 }
 
-func (c *ChromeBrowser) typeGuestEmail() error {
+// TypeGuestEmail types the guest's email in the 'Add members to "Project"' drawer.
+func (c *ChromeBrowser) TypeGuestEmail() error {
 	emailField, err := c.WebDriver.FindElement(selenium.ByCSSSelector, GuestEmailSelector)
 	if err != nil {
 		return err
 	}
 
-	err = emailField.SendKeys(c.Config.NamedGuestEmail)
+	err = emailField.SendKeys(c.Config.GuestEmail)
 	if err != nil {
 		return err
 	}
@@ -37,7 +39,9 @@ func (c *ChromeBrowser) typeGuestEmail() error {
 	return nil
 }
 
-func (c *ChromeBrowser) clickHeader() error {
+// ClickHeader clicks the 'Add members, roles to "Project" project' header to hide
+// the Material options drop down for the AddFirstRole method.
+func (c *ChromeBrowser) ClickHeader() error {
 	headerEl, err := c.WebDriver.FindElement(selenium.ByCSSSelector, HeaderSelector)
 	if err != nil {
 		return err
@@ -50,7 +54,8 @@ func (c *ChromeBrowser) clickHeader() error {
 	return nil
 }
 
-func (c *ChromeBrowser) addFirstRole() error {
+// AddFirstRole adds the Owner role for the guest being added.
+func (c *ChromeBrowser) AddFirstRole() error {
 	roleField, err := c.WebDriver.FindElement(selenium.ByCSSSelector, FirstRoleSelector)
 	if err != nil {
 		return err
@@ -83,7 +88,8 @@ func (c *ChromeBrowser) addFirstRole() error {
 	return nil
 }
 
-func (c *ChromeBrowser) clickAddAnother() error {
+// ClickAddAnother adds another role field for the guest.
+func (c *ChromeBrowser) ClickAddAnother() error {
 	addRoleBtn, err := c.WebDriver.FindElement(selenium.ByXPATH, AddRoleBtnXPATH)
 	if err != nil {
 		return err
@@ -96,7 +102,8 @@ func (c *ChromeBrowser) clickAddAnother() error {
 	return nil
 }
 
-func (c *ChromeBrowser) addSecondRole() error {
+// AddSecondRole adds the Project Billing Manager role for the guest being added.
+func (c *ChromeBrowser) AddSecondRole() error {
 	roleFields, err := c.WebDriver.FindElements(selenium.ByXPATH, RoleInputsXPATH)
 	if err != nil {
 		return err
@@ -135,7 +142,7 @@ func (c *ChromeBrowser) addSecondRole() error {
 		return err
 	}
 
-	// Find the only one that is visible, the Project Billing Manager button and click it
+	// Do the search for the visible role, the Project Billing Manager button, and click it
 	for _, element := range optionElements {
 		displayed, err := element.IsDisplayed()
 		if err != nil {
@@ -153,7 +160,13 @@ func (c *ChromeBrowser) addSecondRole() error {
 	return nil
 }
 
-func (c *ChromeBrowser) submitGuestInvite() error {
+// SubmitGuestInvite clicks the save button at the bottom of the
+// 'Add members to "Project"' drawer. If the guest
+// is already bound as a poilcy on the current project,
+// this may overwrite existing roles. If no new changes
+// are made to the user that is already a member of the project,
+// no changes will be made.
+func (c *ChromeBrowser) SubmitGuestInvite() error {
 	submitBtn, err := c.WebDriver.FindElement(selenium.ByXPATH, RolesSubmitXPATH)
 	if err != nil {
 		return err
