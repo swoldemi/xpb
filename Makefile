@@ -1,32 +1,34 @@
 OUT := xpb.exe
 PKG := github.com/swoldemi/xpb
 VERSION := $(shell git describe --always --long)
-PKG_LIST := $(shell go list ${PKG}/... | grep -v /vendor/)
-GO_FILES := $(shell find . -name '*.go' | grep -v /vendor/)
 
-all: run
+.PHONY: build
+build:
+	 GOOS=windows go build -v -i -o $(OUT) -a -installsuffix cgo -tags netgo -ldflags '-w -extldflags "-static" -X main.GitSHA=${VERSION}' *.go
 
-server:
-	go build -i -v -o ${OUT} -ldflags="-X main.version=${VERSION}" ${PKG}
-
+.PHONY: test
 test:
-	@go test -short ${PKG_LIST}
+	go test -v -race -timeout 30s -count=1 -coverprofile=profile.out ./...
 
-vet:
-	@go vet ${PKG_LIST}
+# Static code analysis tooling and checks
+.PHONY: check
+check:
+	goimports -w -l -e .
+	gofmt -s -w .
+	golangci-lint run ./... \
+		-E goconst \
+		-E gocyclo \
+		-E gosec  \
+		-E gofmt \
+		-E maligned \
+		-E misspell \
+		-E nakedret \
+		-E unconvert \
+		-E unparam \
+		-E dupl
+	goreportcard-cli -v -t 90
 
-lint:
-	@for file in ${GO_FILES} ;  do \
-		golint $$file ; \
-	done
-
-static: vet lint
-	go build -i -v -o ${OUT}-v${VERSION} -tags netgo -ldflags="-extldflags \"-static\" -w -s -X main.version=${VERSION}" ${PKG}
-
-run: server
-	./${OUT}
-
-clean:
-	-@rm ${OUT} ${OUT}-v*
-
-.PHONY: run server static vet lint
+.PHONY: update
+update:
+	go get $(shell go list -f "{{if not (or .Main .Indirect)}}{{.Path}}{{end}}" -m all)
+	go mod tidy

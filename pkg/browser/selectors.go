@@ -50,5 +50,5 @@ const (
 	RolesSubmitXPATH = "//*[@cfcformsubmit=\"addRoleForm\"]"
 
 	// InviteAcceptXPATH defines the XPATH query for finding the invite acceptance button.
-	InviteAcceptXPATH = "//button[@cdkfocusinitial=\"true\"]"
+	InviteAcceptXPATH = "//*[@cdkfocusinitial=\"true\"]"
 )

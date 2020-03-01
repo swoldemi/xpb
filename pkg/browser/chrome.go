@@ -1,13 +1,19 @@
-package browser
+// Package browser enables Selenium driven automation
+// of the Google Cloud Platform Console.
+// TODO: Browser should encapsulate browser specific packages
+// for both Chrome and Firefox (Gecko) clients
+// A simple browser interface with `Wait() error`, `LoginHost() error`
+// and `InviteGuest() error` methods will suffice
+package browser // import "github.com/swoldemi/xpb/pkg/browser"
 
 import (
 	"fmt"
 	"os"
 	"time"
 
-	"github.com/swoldemi/xpb/config"
-	"github.com/swoldemi/xpb/log"
-	"github.com/swoldemi/xpb/util"
+	"github.com/swoldemi/xpb/pkg/config"
+	"github.com/swoldemi/xpb/pkg/log"
+	"github.com/swoldemi/xpb/pkg/util"
 	"github.com/tebeka/selenium"
 )
 
@@ -36,7 +42,7 @@ func New(config *config.Config) (*ChromeBrowser, error) {
 	// Connect to the WebDriver instance running locally.
 	// Need to set mapped chromeOptions to enable, non-W3C standard functionality (like IsDisplayed)
 	// Reference: https://stackoverflow.com/questions/56111529/cannot-call-non-w3c-standard-command-while-in-w3c-mode-seleniumwebdrivererr
-	c := selenium.Capabilities{"browserName": "chrome", "chromeOptions": map[string]bool{"w3c": false}}
+	c := selenium.Capabilities{"browserName": "chrome", "chromeOptions": map[string]bool{"w3c": false, "start-maximized": true}}
 	wd, err := selenium.NewRemote(c, fmt.Sprintf("http://localhost:%d/wd/hub", config.SeleniumRemotePort))
 	if err != nil {
 		return nil, err
@@ -50,13 +56,14 @@ func New(config *config.Config) (*ChromeBrowser, error) {
 	}, nil
 }
 
-// Wait is used for blocking until the page has achived a completed ready state. 
+// Wait is used for blocking until the page has achieved a completed ready state.
 // Currently inconsistent and unreliable.
 func (c *ChromeBrowser) Wait() error {
 	err := c.WebDriver.WaitWithTimeoutAndInterval(util.ReadyStateCond, c.Config.SeleniumTimeout, c.Config.SeleniumPollInterval)
 	if err != nil {
 		return err
 	}
+	time.Sleep(time.Second * 5)
 	return nil
 }
 
@@ -65,7 +72,7 @@ func (c *ChromeBrowser) LoginHost() error {
 	defer func() {
 		err := c.Wait()
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal(err.Error())
 		}
 	}()
 
@@ -94,7 +101,7 @@ func (c *ChromeBrowser) InviteGuest() error {
 	defer func() {
 		err := c.Wait()
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal(err.Error())
 		}
 	}()
 
@@ -133,19 +140,19 @@ func (c *ChromeBrowser) InviteGuest() error {
 	return nil
 }
 
-// LoginGuest logs in to the guest's Google account and accepts the host's invite.
-func (c *ChromeBrowser) LoginGuest() error {
+// AcceptInvite logs in to the guest's Google account and accepts the host's invite.
+func (c *ChromeBrowser) AcceptInvite() error {
 	defer func() {
 		err := c.Wait()
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal(err.Error())
 		}
 	}()
 
 	// Assume that the format of the login url is always the same
-	// TODO: What happens if this is invoked too quickly? 
+	// TODO: What happens if this is invoked too quickly?
 	inviteURL := fmt.Sprintf(
-		"https://console.cloud.google.com/invitation?project=%v&account=%vmemberEmail=%v",
+		"https://console.cloud.google.com/invitation?project=%v&account=%v&memberEmail=%v",
 		c.Config.HostProjectID,
 		c.Config.GuestEmail,
 		c.Config.GuestEmail,
@@ -165,8 +172,10 @@ func (c *ChromeBrowser) LoginGuest() error {
 	if err := c.SubmitPassword(); err != nil {
 		return err
 	}
-	if err := c.AcceptInvite(); err != nil {
+
+	// Desperate wait to wait for modal bootstrapping...
+	if err := c.Wait(); err != nil {
 		return err
 	}
-	return nil
+	return c.ClickInvite()
 }

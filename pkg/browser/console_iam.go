@@ -12,12 +12,7 @@ func (c *ChromeBrowser) ClickAdd() error {
 	if err != nil {
 		return err
 	}
-
-	err = addBtn.Click()
-	if err != nil {
-		return err
-	}
-	return nil
+	return addBtn.Click()
 }
 
 // TypeGuestEmail types the guest's email in the 'Add members to "Project"' drawer.
@@ -26,17 +21,10 @@ func (c *ChromeBrowser) TypeGuestEmail() error {
 	if err != nil {
 		return err
 	}
-
-	err = emailField.SendKeys(c.Config.GuestEmail)
-	if err != nil {
+	if err := emailField.SendKeys(c.Config.GuestEmail); err != nil {
 		return err
 	}
-
-	err = emailField.SendKeys(selenium.EnterKey)
-	if err != nil {
-		return err
-	}
-	return nil
+	return emailField.SendKeys(selenium.EnterKey)
 }
 
 // ClickHeader clicks the 'Add members, roles to "Project" project' header to hide
@@ -46,12 +34,7 @@ func (c *ChromeBrowser) ClickHeader() error {
 	if err != nil {
 		return err
 	}
-
-	err = headerEl.Click()
-	if err != nil {
-		return err
-	}
-	return nil
+	return headerEl.Click()
 }
 
 // AddFirstRole adds the Owner role for the guest being added.
@@ -60,8 +43,7 @@ func (c *ChromeBrowser) AddFirstRole() error {
 	if err != nil {
 		return err
 	}
-	err = roleField.Click()
-	if err != nil {
+	if err := roleField.Click(); err != nil {
 		return err
 	}
 	time.Sleep(time.Second * 1) // Wait for the menu to be visible
@@ -70,9 +52,7 @@ func (c *ChromeBrowser) AddFirstRole() error {
 	if err != nil {
 		return err
 	}
-
-	err = menuInput.SendKeys(OwnerRole)
-	if err != nil {
+	if err := menuInput.SendKeys(OwnerRole); err != nil {
 		return err
 	}
 
@@ -81,11 +61,7 @@ func (c *ChromeBrowser) AddFirstRole() error {
 	if err != nil {
 		return err
 	}
-	err = ownerRoleEl.Click()
-	if err != nil {
-		return err
-	}
-	return nil
+	return ownerRoleEl.Click()
 }
 
 // ClickAddAnother adds another role field for the guest.
@@ -94,12 +70,7 @@ func (c *ChromeBrowser) ClickAddAnother() error {
 	if err != nil {
 		return err
 	}
-
-	err = addRoleBtn.Click()
-	if err != nil {
-		return err
-	}
-	return nil
+	return addRoleBtn.Click()
 }
 
 // AddSecondRole adds the Project Billing Manager role for the guest being added.
@@ -110,8 +81,7 @@ func (c *ChromeBrowser) AddSecondRole() error {
 	}
 
 	// Click the second element that matches the selector
-	err = roleFields[1].Click()
-	if err != nil {
+	if err := roleFields[1].Click(); err != nil {
 		return err
 	}
 	time.Sleep(time.Second * 1) // Wait for the menu to be visible
@@ -122,13 +92,11 @@ func (c *ChromeBrowser) AddSecondRole() error {
 	}
 
 	// Because this is the second time we're opening the menu, clear it
-	err = menuInput.Clear()
-	if err != nil {
+	if err := menuInput.Clear(); err != nil {
 		return err
 	}
 
-	err = menuInput.SendKeys(BillingRole)
-	if err != nil {
+	if err := menuInput.SendKeys(BillingRole); err != nil {
 		return err
 	}
 
@@ -150,8 +118,7 @@ func (c *ChromeBrowser) AddSecondRole() error {
 		}
 
 		if displayed {
-			err = element.Click()
-			if err != nil {
+			if err := element.Click(); err != nil {
 				return err
 			}
 			break
@@ -171,10 +138,5 @@ func (c *ChromeBrowser) SubmitGuestInvite() error {
 	if err != nil {
 		return err
 	}
-
-	err = submitBtn.Click()
-	if err != nil {
-		return err
-	}
-	return nil
+	return submitBtn.Click()
 }

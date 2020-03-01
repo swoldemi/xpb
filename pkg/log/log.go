@@ -1,4 +1,6 @@
-package log
+// Package log provides support for logging to stdout and stderr.
+// Original source: https://github.com/kelseyhightower/confd/blob/master/log/log.go
+package log // import "github.com/swoldemi/xpb/pkg/log"
 
 import (
 	"fmt"
@@ -23,20 +25,13 @@ func init() {
 	log.SetFormatter(&XPBFormatter{})
 }
 
-// SetLevel sets the log level. Valid levels are panic, fatal, error, warn, info, debug, and trace.
+// SetLevel sets the log level.
 func SetLevel(level string) {
-	switch level {
-	case "trace":
-		log.Level = logrus.TraceLevel
-	case "debug":
-		log.Level = logrus.DebugLevel
-	default: 
-		lvl, err := log.ParseLevel(level)
-		if err != nil {
-			Fatal(fmt.Sprintf(`not a valid level: "%s"`, level))
-			log.SetLevel(lvl)
-		}
+	lvl, err := log.ParseLevel(level)
+	if err != nil {
+		Fatal("not a valid log level: '%s'", level)
 	}
+	log.SetLevel(lvl)
 }
 
 // Trace logs a message with severity TRACE.

@@ -1,9 +1,12 @@
 package util
 
 import (
+	"encoding/json"
+	"io/ioutil"
+	"log"
+
 	"github.com/tebeka/selenium"
 )
-
 
 // ReadyStateCond will return true if the session's DOM ready state is complete.
 // This function is used as a Selenium wait condition.
@@ -25,22 +28,19 @@ func ReadyStateCond(wd selenium.WebDriver) (bool, error) {
 	return true, nil
 }
 
-
 // ReadKeyFile reads a service account keyfile. Note:
 // this application expects that the service account
-// is activated before use. 
+// is activated before use.
 func ReadKeyFile(filepath string) map[string]interface{} {
 	// Read key file only to extract project_id and client_email
 	data, err := ioutil.ReadFile(filepath)
 	if err != nil {
 		log.Fatal(err)
 	}
-
 	var svcAccount map[string]interface{}
 	err = json.Unmarshal(data, &svcAccount)
 	if err != nil {
 		log.Fatal(err)
 	}
-
 	return svcAccount
 }

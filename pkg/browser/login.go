@@ -12,12 +12,7 @@ func (c *ChromeBrowser) TypeLoginEmail(email string) error {
 	if err != nil {
 		return err
 	}
-
-	err = emailField.SendKeys(email)
-	if err != nil {
-		return err
-	}
-	return nil
+	return emailField.SendKeys(email)
 }
 
 // SubmitEmail submits the email field to progress to the login field.
@@ -27,26 +22,20 @@ func (c *ChromeBrowser) SubmitEmail() error {
 		return err
 	}
 
-	err = nextBtn.Click()
-	time.Sleep(time.Second * 1)
-	if err != nil {
+	if err := nextBtn.Click(); err != nil {
 		return err
 	}
+	time.Sleep(time.Second * 1)
 	return nil
 }
 
 // TypeLoginPassword types an account's login password.
 func (c *ChromeBrowser) TypeLoginPassword(password string) error {
-	passField, err := c.WebDriver.FindElement(selenium.ByName, HostPasswordSelector)
+	passField, err := c.WebDriver.FindElement(selenium.ByName, LoginPasswordSelector)
 	if err != nil {
 		return err
 	}
-
-	err = passField.SendKeys(password)
-	if err != nil {
-		return err
-	}
-	return nil
+	return passField.SendKeys(password)
 }
 
 // SubmitPassword submits the login form.
@@ -56,10 +45,9 @@ func (c *ChromeBrowser) SubmitPassword() error {
 		return err
 	}
 
-	err = nextBtn.Click()
-	time.Sleep(time.Second * 1)
-	if err != nil {
+	if err := nextBtn.Click(); err != nil {
 		return err
 	}
+	time.Sleep(time.Second * 1)
 	return nil
 }
